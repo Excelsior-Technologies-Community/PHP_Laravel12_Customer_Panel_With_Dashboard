@@ -8,20 +8,56 @@ use Illuminate\Support\Str;
 
 class SupportTicketController extends Controller
 {
-    public function index()
+    /**
+     * Display a listing of tickets.
+     */
+    public function index(Request $request)
     {
-        $tickets = SupportTicket::where('user_id', auth()->id())
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+        $query = SupportTicket::where('user_id', auth()->id());
+
+        // Search by ticket number or subject
+        if ($request->filled('search')) {
+            $search = $request->search;
+
+            $query->where(function ($q) use ($search) {
+                $q->where('ticket_number', 'like', "%{$search}%")
+                    ->orWhere('subject', 'like', "%{$search}%");
+            });
+        }
+
+        // Priority Filter
+        if ($request->filled('priority')) {
+            $query->where('priority', $request->priority);
+        }
+
+        // Status Filter
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Sorting
+        if ($request->sort == 'oldest') {
+            $query->orderBy('created_at', 'asc');
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
+        $tickets = $query->paginate(4)->withQueryString();
 
         return view('tickets.index', compact('tickets'));
     }
 
+    /**
+     * Show create ticket form.
+     */
     public function create()
     {
         return view('tickets.create');
     }
 
+    /**
+     * Store new ticket.
+     */
     public function store(Request $request)
     {
         $request->validate([
@@ -32,20 +68,24 @@ class SupportTicketController extends Controller
 
         $ticket = SupportTicket::create([
             'user_id' => auth()->id(),
-            'ticket_number' => 'TICKET-' . Str::random(10),
+            'ticket_number' => 'TICKET-' . strtoupper(Str::random(8)),
             'subject' => $request->subject,
             'message' => $request->message,
             'priority' => $request->priority,
             'status' => 'open',
         ]);
 
-        return redirect()->route('tickets.show', $ticket)
-            ->with('success', 'Ticket created successfully.');
+        return redirect()
+            ->route('tickets.show', $ticket)
+            ->with('success', 'Support ticket created successfully.');
     }
 
+    /**
+     * Display ticket details.
+     */
     public function show(SupportTicket $ticket)
     {
-        if ($ticket->user_id !== auth()->id()) {
+        if ($ticket->user_id != auth()->id()) {
             abort(403);
         }
 
