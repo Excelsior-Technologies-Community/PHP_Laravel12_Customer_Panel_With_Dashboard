@@ -2,37 +2,62 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Order;
 use App\Models\SupportTicket;
+use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        $user = auth()->user();
-        
+        $userId = auth()->id();
+
         $stats = [
-            'total_orders' => Order::where('user_id', $user->id)->count(),
-            'pending_orders' => Order::where('user_id', $user->id)
-                ->where('status', 'pending')->count(),
-            'open_tickets' => SupportTicket::where('user_id', $user->id)
-                ->where('status', 'open')->count(),
-            'total_spent' => Order::where('user_id', $user->id)
+            'total_orders' => Order::where('user_id', $userId)->count(),
+
+            'pending_orders' => Order::where('user_id', $userId)
+                ->where('status', 'pending')
+                ->count(),
+
+            'completed_orders' => Order::where('user_id', $userId)
+                ->where('status', 'completed')
+                ->count(),
+
+            'cancelled_orders' => Order::where('user_id', $userId)
+                ->where('status', 'cancelled')
+                ->count(),
+
+            'today_orders' => Order::where('user_id', $userId)
+                ->whereDate('created_at', Carbon::today())
+                ->count(),
+
+            'open_tickets' => SupportTicket::where('user_id', $userId)
+                ->where('status', 'open')
+                ->count(),
+
+            'resolved_tickets' => SupportTicket::where('user_id', $userId)
+                ->where('status', 'resolved')
+                ->count(),
+
+            'total_spent' => Order::where('user_id', $userId)
                 ->where('status', 'completed')
                 ->sum('total_amount'),
         ];
 
-        $recentOrders = Order::where('user_id', $user->id)
-            ->orderBy('created_at', 'desc')
+        $recentOrders = Order::where('user_id', $userId)
+            ->latest()
             ->take(5)
             ->get();
 
-        $recentTickets = SupportTicket::where('user_id', $user->id)
-            ->orderBy('created_at', 'desc')
+        $recentTickets = SupportTicket::where('user_id', $userId)
+            ->latest()
             ->take(5)
             ->get();
 
-        return view('dashboard', compact('stats', 'recentOrders', 'recentTickets'));
+        return view('dashboard', compact(
+            'stats',
+            'recentOrders',
+            'recentTickets'
+        ));
     }
 }
