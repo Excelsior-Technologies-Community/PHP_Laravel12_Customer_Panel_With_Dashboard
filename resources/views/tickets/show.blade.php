@@ -20,7 +20,11 @@
             <span class="badge bg-{{ $ticket->priority == 'high' ? 'danger' : ($ticket->priority == 'medium' ? 'warning' : 'info') }} me-2">
                 {{ ucfirst($ticket->priority) }} Priority
             </span>
-            <span class="badge bg-{{ $ticket->status == 'open' ? 'success' : ($ticket->status == 'resolved' ? 'primary' : 'secondary') }}">
+            <span class="badge bg-{{
+    $ticket->status == 'open' ? 'success' :
+    ($ticket->status == 'in_progress' ? 'warning' :
+    ($ticket->status == 'resolved' ? 'primary' : 'secondary'))
+}}">
                 {{ ucfirst(str_replace('_', ' ', $ticket->status)) }}
             </span>
         </div>
@@ -62,7 +66,7 @@
                 </table>
             </div>
         </div>
-        
+
         <div class="mb-4">
             <h6>Message:</h6>
             <div class="alert alert-light border">
@@ -78,7 +82,7 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- This section can be expanded for replies -->
         <div class="alert alert-info">
             <i class="fas fa-info-circle me-2"></i>
@@ -86,6 +90,67 @@
         </div>
     </div>
 </div>
+
+@if(auth()->id() == $ticket->user_id)
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Update Ticket Status</h5>
+    </div>
+
+    <div class="card-body">
+
+        <form method="POST" action="{{ route('tickets.updateStatus', $ticket->id) }}">
+
+            @csrf
+            @method('PUT')
+
+            <div class="row">
+
+                <div class="col-md-6">
+
+                    <select name="status" class="form-select">
+
+                        <option value="open"
+                            {{ $ticket->status == 'open' ? 'selected' : '' }}>
+                            Open
+                        </option>
+
+                        <option value="in_progress"
+                            {{ $ticket->status == 'in_progress' ? 'selected' : '' }}>
+                            In Progress
+                        </option>
+
+                        <option value="resolved"
+                            {{ $ticket->status == 'resolved' ? 'selected' : '' }}>
+                            Resolved
+                        </option>
+
+                        <option value="closed"
+                            {{ $ticket->status == 'closed' ? 'selected' : '' }}>
+                            Closed
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="col-md-3">
+
+                    <button class="btn btn-primary">
+                        Update Status
+                    </button>
+
+                </div>
+
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+@endif
 
 <!-- You can add reply functionality here in the future -->
 <div class="card">
