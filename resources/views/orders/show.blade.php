@@ -2,8 +2,28 @@
 
 @section('content')
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+
     <h1 class="h2">Order Details</h1>
-    <a href="{{ route('orders.index') }}" class="btn btn-secondary">Back to Orders</a>
+
+    <div>
+
+        <a href="{{ route('orders.invoice',$order->id) }}"
+            class="btn btn-success me-2">
+
+            <i class="fas fa-file-pdf me-2"></i>
+            Download Invoice
+
+        </a>
+
+        <a href="{{ route('orders.index') }}"
+            class="btn btn-secondary">
+
+            Back to Orders
+
+        </a>
+
+    </div>
+
 </div>
 
 <div class="card">
@@ -51,7 +71,7 @@
                 </table>
             </div>
         </div>
-        
+
         @if($order->notes)
         <div class="mt-4">
             <h6>Order Notes</h6>
@@ -59,6 +79,63 @@
                 {{ $order->notes }}
             </div>
         </div>
+        @endif
+
+        @if(auth()->id() == $order->user_id)
+
+        <div class="mt-4">
+            <h6>Update Order Status</h6>
+
+            <form method="POST" action="{{ route('orders.updateStatus',$order->id) }}">
+
+                @csrf
+                @method('PUT')
+
+                <div class="row">
+
+                    <div class="col-md-6">
+
+                        <select name="status" class="form-select">
+
+                            <option value="pending"
+                                {{ $order->status == 'pending' ? 'selected' : '' }}>
+                                Pending
+                            </option>
+
+                            <option value="processing"
+                                {{ $order->status == 'processing' ? 'selected' : '' }}>
+                                Processing
+                            </option>
+
+                            <option value="completed"
+                                {{ $order->status == 'completed' ? 'selected' : '' }}>
+                                Completed
+                            </option>
+
+                            <option value="cancelled"
+                                {{ $order->status == 'cancelled' ? 'selected' : '' }}>
+                                Cancelled
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="col-md-3">
+
+                        <button class="btn btn-primary">
+                            Update Status
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+
         @endif
     </div>
 </div>

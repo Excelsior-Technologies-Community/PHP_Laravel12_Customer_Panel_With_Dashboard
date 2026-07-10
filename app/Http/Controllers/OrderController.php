@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use Illuminate\Http\Request;
+use App\Notifications\OrderStatusNotification;
 
 class OrderController extends Controller
 {
@@ -11,7 +12,6 @@ class OrderController extends Controller
     {
         $query = Order::where('user_id', auth()->id());
 
-        // Search
         if ($request->filled('search')) {
             $search = $request->search;
 
@@ -25,12 +25,10 @@ class OrderController extends Controller
             });
         }
 
-        // Status Filter
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        // Sorting
         $sort = $request->get('sort', 'latest');
 
         if ($sort == 'oldest') {
@@ -51,5 +49,26 @@ class OrderController extends Controller
         }
 
         return view('orders.show', compact('order'));
+    }
+
+    public function updateStatus(Request $request, Order $order)
+    {
+        $request->validate([
+            'status' => 'required'
+        ]);
+
+        $order->status = $request->status;
+        $order->save();
+
+        if ($order->user) {
+            $order->user->notify(
+                new OrderStatusNotification($order)
+            );
+        }
+
+        return back()->with(
+            'success',
+            'Order status updated successfully'
+        );
     }
 }
