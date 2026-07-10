@@ -5,17 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\SupportTicket;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use App\Notifications\TicketStatusNotification;
 
 class SupportTicketController extends Controller
 {
-    /**
-     * Display a listing of tickets.
-     */
     public function index(Request $request)
     {
         $query = SupportTicket::where('user_id', auth()->id());
 
-        // Search by ticket number or subject
         if ($request->filled('search')) {
             $search = $request->search;
 
@@ -25,17 +22,14 @@ class SupportTicketController extends Controller
             });
         }
 
-        // Priority Filter
         if ($request->filled('priority')) {
             $query->where('priority', $request->priority);
         }
 
-        // Status Filter
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        // Sorting
         if ($request->sort == 'oldest') {
             $query->orderBy('created_at', 'asc');
         } else {
@@ -47,17 +41,13 @@ class SupportTicketController extends Controller
         return view('tickets.index', compact('tickets'));
     }
 
-    /**
-     * Show create ticket form.
-     */
+
     public function create()
     {
         return view('tickets.create');
     }
 
-    /**
-     * Store new ticket.
-     */
+
     public function store(Request $request)
     {
         $request->validate([
@@ -65,6 +55,7 @@ class SupportTicketController extends Controller
             'message' => 'required|string',
             'priority' => 'required|in:low,medium,high',
         ]);
+
 
         $ticket = SupportTicket::create([
             'user_id' => auth()->id(),
@@ -75,14 +66,13 @@ class SupportTicketController extends Controller
             'status' => 'open',
         ]);
 
+
         return redirect()
             ->route('tickets.show', $ticket)
             ->with('success', 'Support ticket created successfully.');
     }
 
-    /**
-     * Display ticket details.
-     */
+
     public function show(SupportTicket $ticket)
     {
         if ($ticket->user_id != auth()->id()) {
@@ -90,5 +80,32 @@ class SupportTicketController extends Controller
         }
 
         return view('tickets.show', compact('ticket'));
+    }
+
+
+    public function updateStatus(Request $request, SupportTicket $ticket)
+    {
+        $request->validate([
+            'status' => 'required|in:open,in_progress,resolved,closed'
+        ]);
+
+
+        $ticket->status = $request->status;
+
+        $ticket->save();
+
+
+        if ($ticket->user) {
+
+            $ticket->user->notify(
+                new TicketStatusNotification($ticket)
+            );
+        }
+
+
+        return back()->with(
+            'success',
+            'Ticket status updated successfully'
+        );
     }
 }

@@ -72,41 +72,147 @@
 <body class="font-sans antialiased">
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
+
             <a class="navbar-brand" href="{{ route('dashboard') }}">
                 <i class="fas fa-user-circle me-2"></i>Customer Panel
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"
-                            data-bs-toggle="dropdown">
-                            {{ Auth::user()->name }}
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ route('profile.edit') }}">Profile</a></li>
-                            <li>
-                                <hr class="dropdown-divider">
-                            </li>
-                            <li>
-                                <form method="POST" action="{{ route('logout') }}">
-                                    @csrf
-                                    <button type="submit" class="dropdown-item">Log Out</button>
-                                </form>
-                            </li>
-                        </ul>
-                    </li>
-                </ul>
+
+            <div class="ms-auto d-flex align-items-center gap-3">
+
+                <!-- Notification Bell -->
+                <div class="dropdown">
+
+                    <button class="btn btn-dark text-white position-relative"
+                        type="button"
+                        data-bs-toggle="dropdown">
+
+                        <i class="fas fa-bell fa-lg"></i>
+
+                        @if(auth()->user()->unreadNotifications->count() > 0)
+
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                            {{ auth()->user()->unreadNotifications->count() }}
+                        </span>
+
+                        @endif
+
+                    </button>
+
+
+                    <ul class="dropdown-menu dropdown-menu-end">
+
+                        @forelse(auth()->user()->unreadNotifications->take(5) as $notification)
+
+                        <li>
+
+                            @php
+                            $url = '#';
+
+                            if (isset($notification->data['order_id'])) {
+                            $url = route('orders.show', $notification->data['order_id']);
+                            } elseif (isset($notification->data['ticket_id'])) {
+                            $url = route('tickets.show', $notification->data['ticket_id']);
+                            }
+                            @endphp
+
+                            <a class="dropdown-item"
+                                href="{{ route('notification.read', $notification->id) }}">
+
+                                <strong>{{ $notification->data['title'] }}</strong>
+
+                                <br>
+
+                                <small class="text-muted">
+                                    {{ $notification->data['message'] }}
+                                </small>
+
+                            </a>
+
+                        </li>
+
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+
+                        @empty
+
+                        <li>
+                            <span class="dropdown-item text-muted">
+                                No Notifications
+                            </span>
+                        </li>
+
+                        @endforelse
+                    </ul>
+
+                </div>
+
+
+                <!-- User Dropdown -->
+                <div class="dropdown">
+
+                    <button class="btn btn-dark dropdown-toggle text-white"
+                        type="button"
+                        data-bs-toggle="dropdown">
+
+                        <i class="fas fa-user-circle me-1"></i>
+                        {{ Auth::user()->name }}
+
+                    </button>
+
+
+                    <ul class="dropdown-menu dropdown-menu-end">
+
+                        <li>
+
+                            <a class="dropdown-item"
+                                href="{{ route('profile.edit') }}">
+
+                                <i class="fas fa-user me-2"></i>
+                                Profile
+
+                            </a>
+
+                        </li>
+
+
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+
+
+                        <li>
+
+                            <form method="POST" action="{{ route('logout') }}">
+
+                                @csrf
+
+                                <button type="submit"
+                                    class="dropdown-item">
+
+                                    <i class="fas fa-sign-out-alt me-2"></i>
+                                    Logout
+
+                                </button>
+
+                            </form>
+
+                        </li>
+
+
+                    </ul>
+
+                </div>
+
             </div>
+
         </div>
     </nav>
 
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+            <div class="col-md-3 col-lg-2 d-md-block sidebar">
                 <div class="position-sticky pt-3">
                     <ul class="nav flex-column">
                         <li class="nav-item">
@@ -140,21 +246,21 @@
             <!-- Main Content -->
             <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
                 @if(session('success'))
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        {{ session('success') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    {{ session('success') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
                 @endif
 
                 @if($errors->any())
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <ul class="mb-0">
-                            @foreach($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <ul class="mb-0">
+                        @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
                 @endif
 
                 @yield('content')
