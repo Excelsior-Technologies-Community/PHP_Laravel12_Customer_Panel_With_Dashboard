@@ -13,43 +13,119 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Create test user
-        $user = User::create([
-            'name' => 'John Doe',
-            'email' => 'john@example.com',
-            'password' => Hash::make('password'),
-            'phone' => '123-456-7890',
-            'address' => '123 Main St',
-            'city' => 'New York',
-            'state' => 'NY',
-            'zip_code' => '10001',
-            'status' => 'active',
-        ]);
+        // Check tables
+        \App\Models\Order::checkAndAddShipmentColumns();
+        \App\Models\CustomerAddress::checkAndCreateTable();
+        \App\Models\CustomerPaymentMethod::checkAndCreateTable();
 
-        // Create sample orders
-        for ($i = 1; $i <= 5; $i++) {
+        // Create or get test user
+        $user = User::firstOrCreate(
+            ['email' => 'john@example.com'],
+            [
+                'name' => 'John Doe',
+                'password' => Hash::make('password'),
+                'phone' => '987-654-3210',
+                'address' => '704 Palm Grove Heights, SG Highway',
+                'city' => 'Ahmedabad',
+                'state' => 'Gujarat',
+                'zip_code' => '380015',
+                'status' => 'active',
+                'email_verified_at' => now(),
+            ]
+        );
+
+        // Carriers pool
+        $carriers = ['BlueDart Express', 'FedEx', 'DHL Express', 'Delhivery'];
+
+        // Sample rich orders spanning last 6 months for Chart.js analytics
+        $sampleOrders = [
+            ['amount' => 349.99, 'status' => 'completed', 'carrier' => 'BlueDart Express', 'months_ago' => 5],
+            ['amount' => 189.50, 'status' => 'completed', 'carrier' => 'FedEx', 'months_ago' => 4],
+            ['amount' => 520.00, 'status' => 'completed', 'carrier' => 'DHL Express', 'months_ago' => 3],
+            ['amount' => 275.20, 'status' => 'completed', 'carrier' => 'BlueDart Express', 'months_ago' => 2],
+            ['amount' => 640.80, 'status' => 'completed', 'carrier' => 'FedEx', 'months_ago' => 1],
+            ['amount' => 149.00, 'status' => 'processing', 'carrier' => 'BlueDart Express', 'months_ago' => 0],
+            ['amount' => 89.99, 'status' => 'pending', 'carrier' => 'Delhivery', 'months_ago' => 0],
+        ];
+
+        foreach ($sampleOrders as $idx => $ord) {
+            $createdDate = now()->subMonths($ord['months_ago'])->subDays(rand(2, 20));
             Order::create([
                 'user_id' => $user->id,
-                'order_number' => 'ORD-' . Str::random(8),
-                'total_amount' => rand(50, 500),
-                'status' => ['pending', 'processing', 'completed', 'cancelled'][rand(0, 3)],
-                'notes' => 'Sample order note ' . $i,
+                'order_number' => 'ORD-' . strtoupper(Str::random(8)),
+                'total_amount' => $ord['amount'],
+                'status' => $ord['status'],
+                'carrier' => $ord['carrier'],
+                'tracking_number' => 'TRK-' . rand(10000000, 99999999),
+                'estimated_delivery' => now()->addDays(rand(2, 5)),
+                'current_stage' => $ord['status'] === 'completed' ? 'delivered' : ($ord['status'] === 'processing' ? 'shipped' : 'placed'),
+                'notes' => 'Expedited priority delivery order #' . ($idx + 1),
+                'created_at' => $createdDate,
+                'updated_at' => $createdDate,
             ]);
         }
 
-        // Create sample support tickets
-        for ($i = 1; $i <= 3; $i++) {
-            SupportTicket::create([
-                'user_id' => $user->id,
-                'ticket_number' => 'TICKET-' . Str::random(10),
-                'subject' => 'Support Request ' . $i,
-                'message' => 'This is a sample support ticket message for ticket number ' . $i,
-                'priority' => ['low', 'medium', 'high'][rand(0, 2)],
-                'status' => ['open', 'in_progress', 'resolved'][rand(0, 2)],
-            ]);
-        }
+        // Seed Default Addresses
+        \App\Models\CustomerAddress::firstOrCreate(
+            ['user_id' => $user->id, 'title' => 'Home'],
+            [
+                'recipient_name' => 'John Doe',
+                'phone' => '+91 98765 43210',
+                'address_line1' => '704 Palm Grove Heights, SG Highway',
+                'address_line2' => 'Opp. Grand Bhagwati',
+                'city' => 'Ahmedabad',
+                'state' => 'Gujarat',
+                'zip_code' => '380015',
+                'country' => 'India',
+                'is_default' => true,
+            ]
+        );
 
-        $this->command->info('Test data seeded successfully!');
-        $this->command->info('Test User: john@example.com / password');
+        \App\Models\CustomerAddress::firstOrCreate(
+            ['user_id' => $user->id, 'title' => 'Office'],
+            [
+                'recipient_name' => 'John Doe (Tech Lead)',
+                'phone' => '+91 98765 43211',
+                'address_line1' => 'Tower B, 5th Floor, Mindspace IT Park',
+                'address_line2' => 'Satellite Road',
+                'city' => 'Ahmedabad',
+                'state' => 'Gujarat',
+                'zip_code' => '380054',
+                'country' => 'India',
+                'is_default' => false,
+            ]
+        );
+
+        // Seed Payment Shortcuts
+        \App\Models\CustomerPaymentMethod::firstOrCreate(
+            ['user_id' => $user->id, 'last_four' => '4242'],
+            [
+                'method_type' => 'card',
+                'card_brand' => 'Visa',
+                'holder_name' => 'John Doe',
+                'expiry_month' => '08',
+                'expiry_year' => '28',
+                'is_default' => true,
+            ]
+        );
+
+        \App\Models\CustomerPaymentMethod::firstOrCreate(
+            ['user_id' => $user->id, 'upi_id' => 'johndoe@okaxis'],
+            [
+                'method_type' => 'upi',
+                'is_default' => false,
+            ]
+        );
+
+        // Seed Sample support ticket
+        SupportTicket::firstOrCreate(
+            ['user_id' => $user->id, 'subject' => 'Delivery query regarding BlueDart tracking'],
+            [
+                'ticket_number' => 'TICKET-' . strtoupper(Str::random(8)),
+                'message' => 'Please confirm if my latest order requires signature upon delivery.',
+                'priority' => 'medium',
+                'status' => 'open',
+            ]
+        );
     }
 }

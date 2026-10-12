@@ -27,14 +27,27 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('orders')->name('orders.')->group(function () {
         Route::get('/', [OrderController::class, 'index'])->name('index');
         Route::get('/{order}', [OrderController::class, 'show'])->name('show');
-        Route::put('/{order}/status', [OrderController::class, 'updateStatus'])
-            ->name('updateStatus');
+        Route::put('/{order}/status', [OrderController::class, 'updateStatus'])->name('updateStatus');
+        Route::post('/{order}/cancel', [OrderController::class, 'cancel'])->name('cancel');
+        Route::post('/{order}/reorder', [OrderController::class, 'reorder'])->name('reorder');
     });
 
     // Support Tickets Routes
     Route::resource('tickets', SupportTicketController::class)->except(['edit', 'update', 'destroy']);
 
     Route::put('/tickets/{ticket}/status', [SupportTicketController::class, 'updateStatus'])->name('tickets.updateStatus');
+
+    // Multi-Address Book & Saved Payment Methods Vault
+    Route::prefix('vault')->name('vault.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\CustomerVaultController::class, 'index'])->name('index');
+        Route::post('/addresses', [\App\Http\Controllers\CustomerVaultController::class, 'storeAddress'])->name('addresses.store');
+        Route::patch('/addresses/{address}/default', [\App\Http\Controllers\CustomerVaultController::class, 'setDefaultAddress'])->name('addresses.default');
+        Route::delete('/addresses/{address}', [\App\Http\Controllers\CustomerVaultController::class, 'destroyAddress'])->name('addresses.destroy');
+
+        Route::post('/payments', [\App\Http\Controllers\CustomerVaultController::class, 'storePaymentMethod'])->name('payments.store');
+        Route::patch('/payments/{method}/default', [\App\Http\Controllers\CustomerVaultController::class, 'setDefaultPaymentMethod'])->name('payments.default');
+        Route::delete('/payments/{method}', [\App\Http\Controllers\CustomerVaultController::class, 'destroyPaymentMethod'])->name('payments.destroy');
+    });
 
     // Notification Routes
     Route::get('/notifications/read/{id}', [NotificationController::class, 'read'])
